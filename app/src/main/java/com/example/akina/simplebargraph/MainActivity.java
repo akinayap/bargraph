@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private StepDetector simpleStepDetector;
     private SensorManager sensorManager;
     private Sensor accel;
-    private static final String TEXT_NUM_STEPS = "Number of Steps: ";
+    private static final String TEXT_NUM_STEPS = "";//" Steps Walked Today!";
     private int numSteps;
     List<BarEntry> entries = new ArrayList<BarEntry>();
 
@@ -131,7 +131,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         simpleStepDetector.registerListener(this);
 
         TvSteps = (TextView) findViewById(R.id.tv_steps);
-        Button BtnStart = (Button) findViewById(R.id.btn_start);
+
+        numSteps = 0;
+        sensorManager.registerListener(MainActivity.this, accel, SensorManager.SENSOR_DELAY_FASTEST);
+
+/*      Button BtnStart = (Button) findViewById(R.id.btn_start);
         Button BtnStop = (Button) findViewById(R.id.btn_stop);
 
         BtnStart.setOnClickListener(new View.OnClickListener() {
@@ -154,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorManager.unregisterListener(MainActivity.this);
 
             }
-        });
+        });*/
 
 
     }
@@ -227,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.notifyDataSetChanged(); // let the chart know it's data changed
         chart.invalidate(); // refresh
 
-        TvSteps.setText(TEXT_NUM_STEPS + numSteps);
+        TvSteps.setText(numSteps + TEXT_NUM_STEPS);
     }
 
 }
