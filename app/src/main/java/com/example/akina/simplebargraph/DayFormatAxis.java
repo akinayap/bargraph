@@ -33,34 +33,7 @@ public class DayFormatAxis  implements IAxisValueFormatter
         } else {
 
             int dayOfMonth = determineDayOfMonth(days, month + 12 * (year - 2018));
-
-            String appendix = "th";
-
-            switch (dayOfMonth) {
-                case 1:
-                    appendix = "st";
-                    break;
-                case 2:
-                    appendix = "nd";
-                    break;
-                case 3:
-                    appendix = "rd";
-                    break;
-                case 21:
-                    appendix = "st";
-                    break;
-                case 22:
-                    appendix = "nd";
-                    break;
-                case 23:
-                    appendix = "rd";
-                    break;
-                case 31:
-                    appendix = "st";
-                    break;
-            }
-
-            return dayOfMonth == 0 ? "" : dayOfMonth + appendix + " " + monthName + " " + yearName;
+            return dayOfMonth <= 0 ? "" : dayOfMonth + " " + monthName;
         }
     }
 

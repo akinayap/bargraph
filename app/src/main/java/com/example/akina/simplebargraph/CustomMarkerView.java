@@ -1,13 +1,18 @@
 package com.example.akina.simplebargraph;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.util.Log;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.MarkerView;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.utils.MPPointF;
+
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class CustomMarkerView extends MarkerView {
 
@@ -25,18 +30,30 @@ public class CustomMarkerView extends MarkerView {
         distTV = (TextView) findViewById(R.id.dist);
     }
 
+    @Override
+    public void draw(Canvas canvas, float posX, float posY) {
+
+        MPPointF offset = getOffsetForDrawingAtPoint(posX, posY);
+
+        int saveId = canvas.save();
+        // translate to the correct position and draw
+        canvas.translate(posX + offset.x, offset.y);//posY + offset.y);
+        draw(canvas);
+        canvas.restoreToCount(saveId);
+    }
+
     // callbacks everytime the MarkerView is redrawn, can be used to update the
     // content (user-interface)
     @Override
     public void refreshContent(Entry e, Highlight highlight) {
         dateTV.setText(getDateStr(e.getX()));
-        distTV.setText("" + (int)e.getY() + " STEPS"); // set the entry-value as the display text
+        distTV.setText("" + NumberFormat.getNumberInstance(Locale.US).format((int)e.getY()) + " Steps"); // set the entry-value as the display text
     }
 
     @Override
     public MPPointF getOffset() {
         // this will center the marker-view horizontally
-        return new MPPointF(-(getWidth() / 2), -getHeight() - 5f);
+        return new MPPointF(-(getWidth() / 2),-10f);
     }
 
     /* For format YYYYMMDD
@@ -61,33 +78,7 @@ public class CustomMarkerView extends MarkerView {
         String monthName = mMonths[month % mMonths.length];
         String yearName = String.valueOf(year);
         int dayOfMonth = determineDayOfMonth(days, month + 12 * (year - 2018));
-
-        String appendix = "th";
-
-        switch (dayOfMonth) {
-            case 1:
-                appendix = "st";
-                break;
-            case 2:
-                appendix = "nd";
-                break;
-            case 3:
-                appendix = "rd";
-                break;
-            case 21:
-                appendix = "st";
-                break;
-            case 22:
-                appendix = "nd";
-                break;
-            case 23:
-                appendix = "rd";
-                break;
-            case 31:
-                appendix = "st";
-                break;
-        }
-        return dayOfMonth == 0 ? "" : monthName + " " + dayOfMonth + " " + yearName;
+        return dayOfMonth <= 0 ? "" : monthName + " " + dayOfMonth + " " + yearName;
 
     }
 
@@ -152,10 +143,10 @@ public class CustomMarkerView extends MarkerView {
             return 2018;
         else if (days <= 730) // 2019 has 365 days
             return 2019;
-        else if(days <= (730 + 366))
+        else if(days <= (1096)) // 2020 has 366 days
             return 2020;
         else
-            return 2021;
+            return 2021; // 2021 has 365 days
 
     }
 }
