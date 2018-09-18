@@ -1,16 +1,15 @@
 package com.example.akina.simplebargraph;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.icu.util.DateInterval;
-import android.os.Debug;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -20,18 +19,36 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.IAxisValueFormatter;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.fitness.FitnessOptions;
+import com.google.android.gms.fitness.data.Bucket;
+import com.google.android.gms.fitness.data.DataPoint;
+import com.google.android.gms.fitness.data.DataSet;
+import com.google.android.gms.fitness.data.DataSource;
+import com.google.android.gms.fitness.data.DataType;
+import com.google.android.gms.fitness.data.Field;
+import com.google.android.gms.fitness.request.DataReadRequest;
+import com.google.android.gms.fitness.result.DataReadResponse;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+import static java.text.DateFormat.getDateInstance;
+import static java.text.DateFormat.getTimeInstance;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, StepListener {
+
+    public static final String TAG = "StepCounter";
+    private static final int REQUEST_OAUTH_REQUEST_CODE = 0x1001;
 
     BarChart chart;
     BarDataSet dataSet;
@@ -45,25 +62,43 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     List<BarEntry> entries = new ArrayList<BarEntry>();
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        chart = findViewById(R.id.chart);
 
+
+
+    FitnessOptions fitnessOptions =
+            FitnessOptions.builder()
+                    .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
+                    .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
+                    .build();
+    if (!GoogleSignIn.hasPermissions(GoogleSignIn.getLastSignedInAccount(this), fitnessOptions)) {
+        GoogleSignIn.requestPermissions(
+                    this,
+                    REQUEST_OAUTH_REQUEST_CODE,
+                    GoogleSignIn.getLastSignedInAccount(this),
+                    fitnessOptions);
+
+        } else {
+            Log.e("ON CREATE SUBSCRIBE", "CREATE");
+            subscribe();
+        }
+    }
+
+    public void drawBarGraph()
+    {
+
+        // This today data is to jump to current day when initialize
         Calendar now = Calendar.getInstance();
-        int today = ConvertDateToValue(now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH));
+        int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
 
-        //// Date format YYYYMMDD
-        //entries.add(new BarEntry(19911220, 12f));
-        //entries.add(new BarEntry(20021130, 23f));
-        //entries.add(new BarEntry(20140508, 55f));
-        //entries.add(new BarEntry(20170607, 88f));
+        // Get data here
+        Log.e("SIZE", Integer.toString(entries.size()));
 
-        // Date format days
-        Random rand = new Random();
-        for (int i = 1; i < today; ++i)
-            entries.add(new BarEntry(i, rand.nextInt(50) ));
+        chart = findViewById(R.id.chart);
 
         dataSet = new BarDataSet(entries, "Label");
         dataSet.setBarBorderColor(android.R.color.white);
@@ -97,8 +132,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         xAxis.setGranularity(1f); // only intervals of 1 day
         xAxis.setLabelCount(7);
         xAxis.setValueFormatter(xAxisFormatter);
-        xAxis.setAxisMinimum(-(chart.getVisibleXRange()/2)); // So that first element start in the middle
-        xAxis.setAxisMaximum(today + (chart.getVisibleXRange()/2)); // So that last element ends in the middle
+        xAxis.setAxisMinimum(-(chart.getVisibleXRange() / 2)); // So that first element start in the middle
+        xAxis.setAxisMaximum(today + (chart.getVisibleXRange() / 2)); // So that last element ends in the middle
         xAxis.setDrawGridLines(true);
         xAxis.setGridLineWidth(0.5f);
         xAxis.setDrawAxisLine(false);
@@ -119,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         CustomMarkerView marker = new CustomMarkerView(this, R.layout.marker);
 
         // Make graph value be today
-        chart.moveViewToX(today - (chart.getVisibleXRange()/2));
+        chart.moveViewToX(today - (chart.getVisibleXRange() / 2));
 
         chart.setMarker(marker);
         chart.invalidate();
@@ -135,33 +170,119 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         numSteps = 0;
         sensorManager.registerListener(MainActivity.this, accel, SensorManager.SENSOR_DELAY_FASTEST);
 
-/*      Button BtnStart = (Button) findViewById(R.id.btn_start);
-        Button BtnStop = (Button) findViewById(R.id.btn_stop);
-
-        BtnStart.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-
-                numSteps = 0;
-                sensorManager.registerListener(MainActivity.this, accel, SensorManager.SENSOR_DELAY_FASTEST);
-
-            }
-        });
-
-
-        BtnStop.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View arg0) {
-
-                sensorManager.unregisterListener(MainActivity.this);
-
-            }
-        });*/
-
-
     }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            if (requestCode == REQUEST_OAUTH_REQUEST_CODE) {
+                Log.e("ON ACTIVITY SUBSCRIBE", "CREATE");
+                subscribe();
+            }
+        }
+    }
+
+    public void subscribe() {
+        // To create a subscription, invoke the Recording API. As soon as the subscription is
+        // active, fitness data will start recording.
+        Fitness.getRecordingClient(this, GoogleSignIn.getLastSignedInAccount(this))
+                .subscribe(DataType.TYPE_STEP_COUNT_CUMULATIVE)
+                .addOnCompleteListener(
+                        new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    Log.e(TAG, "Successfully subscribed!");
+                                    readData();
+                                } else {
+                                    Log.e(TAG, "There was a problem subscribing.", task.getException());
+                                }
+                            }
+                        });
+    }
+
+    private void readData() {
+
+        Calendar now = Calendar.getInstance();
+        int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
+
+        Calendar cal = Calendar.getInstance();
+        Date currTime = new Date();
+        currTime.setHours(23);
+        currTime.setMinutes(59);
+
+        cal.setTime(currTime);
+        long endTime = cal.getTimeInMillis();
+
+        cal.add(Calendar.DAY_OF_YEAR, -today);
+        long startTime = cal.getTimeInMillis();
+
+        java.text.DateFormat dateFormat = getDateInstance();
+        Log.e(TAG, "Range Start: " + dateFormat.format(startTime));
+        Log.e(TAG, "Range End: " + dateFormat.format(endTime));
+
+        DataSource ESTIMATED_STEP_DELTAS = new DataSource.Builder()
+                .setDataType(DataType.TYPE_STEP_COUNT_DELTA)
+                .setType(DataSource.TYPE_DERIVED)
+                .setStreamName("estimated_steps")
+                .setAppPackageName("com.google.android.gms")
+                .build();
+
+        DataReadRequest readRequest = new DataReadRequest.Builder()
+                .aggregate(ESTIMATED_STEP_DELTAS, DataType.AGGREGATE_STEP_COUNT_DELTA)
+                .bucketByTime(1, TimeUnit.DAYS)
+                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
+                .build();
+
+        // [END build_read_data_request]
+
+        Fitness.getHistoryClient(this, GoogleSignIn.getLastSignedInAccount(this))
+                .readData(readRequest)
+                .addOnSuccessListener(
+                        new OnSuccessListener<DataReadResponse>() {
+                            @Override
+                            public void onSuccess(DataReadResponse dataReadResponse) {
+                                // For the sake of the sample, we'll print the data so we can see what we just
+                                // added. In general, logging fitness information should be avoided for privacy
+                                // reasons.
+                                // [START parse_read_data_result]
+                                // If the DataReadRequest object specified aggregated data, dataReadResult will be returned
+                                // as buckets containing DataSets, instead of just DataSets.
+                                if (dataReadResponse.getBuckets().size() > 0) {
+
+                                    int i = 1;
+                                    Log.e(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.getBuckets().size());
+                                    for (Bucket bucket : dataReadResponse.getBuckets()) {
+                                        List<DataSet> dataSets = bucket.getDataSets();
+                                        for (DataSet dataSet : dataSets) {
+                                            DateFormat dateFormat = getDateInstance();
+
+                                            for (DataPoint dp : dataSet.getDataPoints()) {
+                                                Log.e(TAG, "\tStart: " + dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
+                                                Log.e(TAG, "\tEnd: " + dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)));
+                                                for (Field field : dp.getDataType().getFields()) {
+                                                    entries.add(new BarEntry(i, dp.getValue(field).asInt()));
+                                                    Log.e(TAG, "\tField: " + field.getName() +Integer.toString(i) +  " Value: " + dp.getValue(field));
+                                                }
+                                            }
+                                        }
+                                        ++i;
+                                    }
+
+                                    drawBarGraph();
+                                }
+                                // [END parse_read_data_result]
+                            }
+                        }).addOnFailureListener(
+                new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.e(TAG, "There was a problem reading the data.", e);
+                    }
+                });
+    }
+
 
     int ConvertDateToValue(int year, int month, int day)
     {
@@ -213,21 +334,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         int today = ConvertDateToValue(now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH));
 
         // if day does not exist in list, create
-        if(entries.size() < today)
-        {
-            numSteps = 1;
-            entries.add(new BarEntry(today, numSteps));
-        }
-        // else remove and update
-        else
-        {
-            numSteps = (int)(entries.get(today - 1).getY()) + 1;
-            entries.remove(entries.get(today - 1));
-            entries.add(new BarEntry(today, numSteps));
-            dataSet.removeLast();
-        }
+        numSteps = (int)(entries.get(entries.size()-1).getY()) + 1;
+        entries.remove(entries.get(entries.size()-1));
+        entries.add(new BarEntry(today, numSteps));
+        dataSet.removeLast();
 
         dataSet.addEntry(new BarEntry(today, numSteps));
+        chart.setVisibleXRange(7, 7);
         chart.notifyDataSetChanged(); // let the chart know it's data changed
         chart.invalidate(); // refresh
 
