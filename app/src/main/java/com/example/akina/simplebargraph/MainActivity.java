@@ -7,6 +7,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.support.annotation.NonNull;
+import android.support.design.widget.TabLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -59,8 +60,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accel;
     private static final String TEXT_NUM_STEPS = "";//" Steps Walked Today!";
     private int numSteps;
+    List<BarEntry> hours = new ArrayList<BarEntry>();
     List<BarEntry> entries = new ArrayList<BarEntry>();
-
+    List<BarEntry> years = new ArrayList<BarEntry>();
 
 
     @Override
@@ -68,15 +70,91 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                int position = tab.getPosition();
 
+                Calendar now = Calendar.getInstance();
+                int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
 
-    FitnessOptions fitnessOptions =
-            FitnessOptions.builder()
-                    .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
-                    .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
-                    .build();
-    if (!GoogleSignIn.hasPermissions(GoogleSignIn.getLastSignedInAccount(this), fitnessOptions)) {
-        GoogleSignIn.requestPermissions(
+                switch (position) {
+                    case 0:
+                        int startIndex = today * 24;
+                        refreshGraph(24, 0, startIndex - 1,  7, 0); // For day of week;
+                        break;
+                    case 1:
+                        // For week (today's week beginning Sunday
+                        int startDay = today - (today % 7);
+                        refreshGraph(7, 0, startDay + 6,  7, 1); // For day of week;
+                        break;
+                    case 2:
+                        int year = determineYear(today);
+                        int month = determineMonth(today);
+                        int dayOfMonth = determineDayOfMonth(today, month + 12 * (year - 2018));
+                        int lastDayOfMonth = getDaysForMonth(month, year);
+                        refreshGraph(lastDayOfMonth, /*(today - dayOfMonth + 1)*/0, (today - dayOfMonth) + lastDayOfMonth, 6, 2); // For day of month;
+                        break;
+                    case 3:
+                        int currYear = determineYear(today);
+                        int currMonth = determineMonth(today);
+
+                        int monthOfYear = (currYear - 2018) * 12 + currMonth;
+                        int startYear = monthOfYear - (monthOfYear % 12);
+                        refreshGraph(12, /*startYear*/0, startYear + 11, 12, 3); // For month of year;
+                        break;
+                }
+                //do stuff here
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+                int position = tab.getPosition();
+
+                Calendar now = Calendar.getInstance();
+                int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
+
+                switch (position) {
+                    case 0:
+                        int startIndex = today * 24;
+                        refreshGraph(24, 0, startIndex,  7, 0); // For day of week;
+                        break;
+                    case 1:
+                        // For week (today's week beginning Sunday
+                        int startDay = today - (today % 7);
+                        refreshGraph(7, 0, startDay + 6,  7, 1); // For day of week;
+                        break;
+                    case 2:
+                        int year = determineYear(today);
+                        int month = determineMonth(today);
+                        int dayOfMonth = determineDayOfMonth(today, month + 12 * (year - 2018));
+                        int lastDayOfMonth = getDaysForMonth(month, year);
+                        refreshGraph(lastDayOfMonth, /*(today - dayOfMonth + 1)*/0, (today - dayOfMonth) + lastDayOfMonth, 6, 2); // For day of month;
+                        break;
+                    case 3:
+                        int currYear = determineYear(today);
+                        int currMonth = determineMonth(today);
+
+                        int monthOfYear = (currYear - 2018) * 12 + currMonth;
+                        int startYear = monthOfYear - (monthOfYear % 12);
+                        refreshGraph(12, /*startYear*/0, startYear + 11, 12, 3); // For month of year;
+                        break;
+                }
+            }
+        });
+
+        FitnessOptions fitnessOptions =
+                FitnessOptions.builder()
+                        .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
+                        .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
+                        .build();
+        if (!GoogleSignIn.hasPermissions(GoogleSignIn.getLastSignedInAccount(this), fitnessOptions)) {
+            GoogleSignIn.requestPermissions(
                     this,
                     REQUEST_OAUTH_REQUEST_CODE,
                     GoogleSignIn.getLastSignedInAccount(this),
@@ -88,19 +166,138 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public void drawBarGraph()
-    {
+    public void refreshGraph(int rangeX, int dateStart, int dateEnd, int labelCount, int position) {
+        // Modify Dataset
+        // Empty dataset
+        Calendar now = Calendar.getInstance();
+        int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
+        IAxisValueFormatter xAxisFormatter;
+        XAxis xAxis = chart.getXAxis();
+        int moveView = 0;
 
+        switch (position)
+        {
+            case 0: // hours
+                dataSet = new BarDataSet(hours, "Label");
+                xAxisFormatter = new DayFormatAxis(chart);
+                CustomTimeMarkerView markerHour = new CustomTimeMarkerView(this, R.layout.marker);
+                chart.setMarker(markerHour);
+
+                dataSet.setBarBorderColor(android.R.color.white);
+                dataSet.setBarBorderWidth(1f);
+                dataSet.setHighLightAlpha(0);
+                dataSet.setDrawValues(false);
+                dataSet.setColor(0xFFFF6161);
+
+                data = new BarData(dataSet);
+                data.setBarWidth(0.7f);
+
+                chart.setData(data);
+                xAxis.setLabelCount(labelCount);
+                xAxis.setValueFormatter(xAxisFormatter);
+                xAxis.setAxisMinimum(dateStart); // So that first element start in the middle
+                xAxis.setAxisMaximum(dateEnd); // So that last element ends in the middle
+
+                moveView = today * 24;
+                break;
+            case 1: // week
+                dataSet = new BarDataSet(entries, "Label");
+                xAxisFormatter = new WeekFormatAxis(chart);
+                CustomMarkerView markerWeek = new CustomMarkerView(this, R.layout.marker);
+                chart.setMarker(markerWeek);
+
+                dataSet.setBarBorderColor(android.R.color.white);
+                dataSet.setBarBorderWidth(1f);
+                dataSet.setHighLightAlpha(0);
+                dataSet.setDrawValues(false);
+                dataSet.setColor(0xFFFF6161);
+
+                data = new BarData(dataSet);
+                data.setBarWidth(0.7f);
+
+                chart.setData(data);
+                xAxis = chart.getXAxis();
+                xAxis.setLabelCount(labelCount);
+                xAxis.setValueFormatter(xAxisFormatter);
+                xAxis.setAxisMinimum(dateStart); // So that first element start in the middle
+                xAxis.setAxisMaximum(dateEnd); // So that last element ends in the middle
+
+                moveView = today - (today%7);
+                break;
+            case 2: // month
+                dataSet = new BarDataSet(entries, "Label");
+                xAxisFormatter = new MonthFormatAxis(chart);
+                CustomMarkerView markerMonth = new CustomMarkerView(this, R.layout.marker);
+                chart.setMarker(markerMonth);
+
+                dataSet.setBarBorderColor(android.R.color.white);
+                dataSet.setBarBorderWidth(1f);
+                dataSet.setHighLightAlpha(0);
+                dataSet.setDrawValues(false);
+                dataSet.setColor(0xFFFF6161);
+
+                data = new BarData(dataSet);
+                data.setBarWidth(0.7f);
+
+                chart.setData(data);
+                xAxis = chart.getXAxis();
+                xAxis.setLabelCount(labelCount);
+                xAxis.setValueFormatter(xAxisFormatter);
+                xAxis.setAxisMinimum(dateStart); // So that first element start in the middle
+                xAxis.setAxisMaximum(dateEnd); // So that last element ends in the middle
+
+                moveView = today - (int)(chart.getVisibleXRange() / 2);
+                break;
+            case 3: // year
+                Log.e("TOTAL YEARS", Integer.toString(years.size()));
+                dataSet = new BarDataSet(years, "Label");
+                xAxisFormatter = new YearFormatAxis(chart);
+                CustomYearMarkerView markerYear = new CustomYearMarkerView(this, R.layout.marker);
+                chart.setMarker(markerYear);
+
+                int currYear = determineYear(today);
+                int currMonth = determineMonth(today);
+
+                int monthOfYear = (currYear - 2018) * 12 + currMonth;
+                int startYear = monthOfYear - (monthOfYear % 12);
+
+                dataSet.setBarBorderColor(android.R.color.white);
+                dataSet.setBarBorderWidth(1f);
+                dataSet.setHighLightAlpha(0);
+                dataSet.setDrawValues(false);
+                dataSet.setColor(0xFFFF6161);
+
+                data = new BarData(dataSet);
+                data.setBarWidth(0.7f);
+
+                chart.setData(data);
+                xAxis = chart.getXAxis();
+                xAxis.setLabelCount(labelCount);
+                xAxis.setValueFormatter(xAxisFormatter);
+                xAxis.setAxisMinimum(dateStart); // So that first element start in the middle
+                xAxis.setAxisMaximum(dateEnd); // So that last element ends in the middle
+
+                moveView = startYear;
+                break;
+        }
+
+
+        chart.notifyDataSetChanged();
+        chart.invalidate();
+        chart.moveViewToX(moveView);
+        chart.fitScreen();
+        chart.setVisibleXRange(rangeX, rangeX);
+    }
+
+
+    public void drawBarGraph() {
         // This today data is to jump to current day when initialize
         Calendar now = Calendar.getInstance();
         int today = ConvertDateToValue(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
 
         // Get data here
-        Log.e("SIZE", Integer.toString(entries.size()));
-
         chart = findViewById(R.id.chart);
-
-        dataSet = new BarDataSet(entries, "Label");
+        dataSet = new BarDataSet(hours, "Label");
         dataSet.setBarBorderColor(android.R.color.white);
         dataSet.setBarBorderWidth(1f);
         dataSet.setHighLightAlpha(0);
@@ -117,7 +314,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.getDescription().setEnabled(false);
         chart.setDrawGridBackground(true);
 
-        chart.setVisibleXRange(7, 7); // Week 7, Month 30, Year 12,
         chart.setScaleEnabled(false);
         chart.setDrawGridBackground(false);
         chart.setDrawBorders(false);
@@ -132,8 +328,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         xAxis.setGranularity(1f); // only intervals of 1 day
         xAxis.setLabelCount(7);
         xAxis.setValueFormatter(xAxisFormatter);
-        xAxis.setAxisMinimum(-(chart.getVisibleXRange() / 2)); // So that first element start in the middle
-        xAxis.setAxisMaximum(today + (chart.getVisibleXRange() / 2)); // So that last element ends in the middle
+        xAxis.setAxisMinimum(0); // So that first element start in the middle
+        xAxis.setAxisMaximum(today * 24); // So that last element ends in the middle
         xAxis.setDrawGridLines(true);
         xAxis.setGridLineWidth(0.5f);
         xAxis.setDrawAxisLine(false);
@@ -151,13 +347,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         leftAxis.setDrawGridLines(false);
         leftAxis.setDrawAxisLine(false);
 
-        CustomMarkerView marker = new CustomMarkerView(this, R.layout.marker);
+        CustomTimeMarkerView marker = new CustomTimeMarkerView(this, R.layout.marker);
 
         // Make graph value be today
-        chart.moveViewToX(today - (chart.getVisibleXRange() / 2));
+        chart.moveViewToX(today*24);
 
         chart.setMarker(marker);
+        chart.fitScreen();
         chart.invalidate();
+        chart.setVisibleXRange(24, 24); // Week 7, Month 30, Year 12,
 
         // Get an instance of the SensorManager
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -169,7 +367,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         numSteps = 0;
         sensorManager.registerListener(MainActivity.this, accel, SensorManager.SENSOR_DELAY_FASTEST);
-
     }
 
 
@@ -218,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         cal.add(Calendar.DAY_OF_YEAR, -today);
         long startTime = cal.getTimeInMillis();
 
-        java.text.DateFormat dateFormat = getDateInstance();
+        java.text.DateFormat dateFormat = getTimeInstance();
         Log.e(TAG, "Range Start: " + dateFormat.format(startTime));
         Log.e(TAG, "Range End: " + dateFormat.format(endTime));
 
@@ -231,7 +428,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         DataReadRequest readRequest = new DataReadRequest.Builder()
                 .aggregate(ESTIMATED_STEP_DELTAS, DataType.AGGREGATE_STEP_COUNT_DELTA)
-                .bucketByTime(1, TimeUnit.DAYS)
+                .bucketByTime(1, TimeUnit.HOURS)
                 .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
                 .build();
 
@@ -251,27 +448,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                                 // as buckets containing DataSets, instead of just DataSets.
                                 if (dataReadResponse.getBuckets().size() > 0) {
 
-                                    int i = 1;
+                                    int i = 0;
+                                    int currValue = 0;
+                                    int currHourValue = 0;
+                                    int currMonth = 1;
                                     Log.e(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.getBuckets().size());
                                     for (Bucket bucket : dataReadResponse.getBuckets()) {
                                         List<DataSet> dataSets = bucket.getDataSets();
                                         for (DataSet dataSet : dataSets) {
-                                            DateFormat dateFormat = getDateInstance();
-
+                                            DateFormat dateFormat = getTimeInstance();
                                             for (DataPoint dp : dataSet.getDataPoints()) {
                                                 Log.e(TAG, "\tStart: " + dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
                                                 Log.e(TAG, "\tEnd: " + dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)));
                                                 for (Field field : dp.getDataType().getFields()) {
-                                                    entries.add(new BarEntry(i, dp.getValue(field).asInt()));
-                                                    Log.e(TAG, "\tField: " + field.getName() +Integer.toString(i) +  " Value: " + dp.getValue(field));
+                                                    hours.add(new BarEntry(i, dp.getValue(field).asInt()));
+                                                    currHourValue += dp.getValue(field).asInt();
+                                                    currValue += dp.getValue(field).asInt();
+                                                    Log.e(TAG, "\tField: " + field.getName() + Integer.toString(i) + " Value: " + dp.getValue(field));
                                                 }
+                                            }
+                                        }
+                                        if((i % 24) == 0)
+                                        {
+                                            int days = (i/24);
+                                            entries.add(new BarEntry(days, currHourValue));
+                                            int currYear = determineYear(days);
+                                            int nextMonth = determineMonth(days + 1);
+                                            currHourValue = 0;
+                                            if(nextMonth != currMonth)
+                                            {
+                                                int monthOfYear = (currYear - 2018) * 12 + currMonth;
+                                                years.add(new BarEntry(monthOfYear, currValue));
+                                                currValue = 0;
+                                                currMonth = nextMonth;
                                             }
                                         }
                                         ++i;
                                     }
-
-                                    drawBarGraph();
+                                    if (currHourValue != 0)
+                                    {
+                                        int days = (i/24);
+                                        entries.add(new BarEntry(days, currHourValue));
+                                    }
+                                    if (currValue != 0)
+                                    {
+                                        int remainingYear = determineYear(i/24 + 1);
+                                        int remainingMonth = determineMonth(i/24 + 1);
+                                        int monthOfYear = (remainingYear - 2018) * 12 + remainingMonth;
+                                        years.add(new BarEntry(monthOfYear, currValue));
+                                    }
                                 }
+                                drawBarGraph();
                                 // [END parse_read_data_result]
                             }
                         }).addOnFailureListener(
@@ -284,34 +511,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
 
-    int ConvertDateToValue(int year, int month, int day)
-    {
+    int ConvertDateToValue(int year, int month, int day) {
         int offsetToCurrYear = 0;
-        if(year == 2019)
+        if (year == 2019)
             offsetToCurrYear = 365;
-        else if(year == 2020)
+        else if (year == 2020)
             offsetToCurrYear = 730;
-        else if(year == 2021)
+        else if (year == 2021)
             offsetToCurrYear = 1096;
 
         int offsetToCurrMonth = month * 31;
-        if(month > 1)
-        {
-            offsetToCurrMonth-=3;
-            if(year == 2020)
+        if (month > 1) {
+            offsetToCurrMonth -= 3;
+            if (year == 2020)
                 offsetToCurrMonth++;
         }
 
-        if(month >= 4)
+        if (month >= 4)
             offsetToCurrMonth--;
-        if(month >=6)
+        if (month >= 6)
             offsetToCurrMonth--;
-        if(month >= 9)
+        if (month >= 9)
             offsetToCurrMonth--;
-        if(month >= 11)
+        if (month >= 11)
             offsetToCurrMonth--;
 
-        return offsetToCurrYear+offsetToCurrMonth+day;
+        return offsetToCurrYear + offsetToCurrMonth + day;
     }
 
 
@@ -330,21 +555,74 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void step(long timeNs) {
         // Get current day
-        Calendar now = Calendar.getInstance();
-        int today = ConvertDateToValue(now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH));
+        }
 
-        // if day does not exist in list, create
-        numSteps = (int)(entries.get(entries.size()-1).getY()) + 1;
-        entries.remove(entries.get(entries.size()-1));
-        entries.add(new BarEntry(today, numSteps));
-        dataSet.removeLast();
+    private int getDaysForMonth(int month, int year) {
 
-        dataSet.addEntry(new BarEntry(today, numSteps));
-        chart.setVisibleXRange(7, 7);
-        chart.notifyDataSetChanged(); // let the chart know it's data changed
-        chart.invalidate(); // refresh
+        // month is 0-based
 
-        TvSteps.setText(numSteps + TEXT_NUM_STEPS);
+        if (month == 1) {
+            boolean is29Feb = false;
+
+            if (year < 1582)
+                is29Feb = (year < 1 ? year + 1 : year) % 4 == 0;
+            else if (year > 1582)
+                is29Feb = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+
+            return is29Feb ? 29 : 28;
+        }
+
+        if (month == 3 || month == 5 || month == 8 || month == 10)
+            return 30;
+        else
+            return 31;
     }
 
+    private int determineMonth(int dayOfYear) {
+
+        int month = -1;
+        int days = 0;
+
+        while (days < dayOfYear) {
+            month = month + 1;
+
+            if (month >= 12)
+                month = 0;
+
+            int year = determineYear(days);
+            days += getDaysForMonth(month, year);
+        }
+
+        return Math.max(month, 0);
+    }
+
+    private int determineDayOfMonth(int days, int month) {
+
+        int count = 0;
+        int daysForMonths = 0;
+
+        while (count < month) {
+
+            int year = determineYear(daysForMonths);
+            daysForMonths += getDaysForMonth(count % 12, year);
+            count++;
+        }
+
+        return days - daysForMonths;
+    }
+
+    private int determineYear(int days) {
+
+        // Begin year at 2018
+        // (If change year, have to change in custom marker view and line 35 of this doc)
+        if (days <= 365) // 2018 has 365 days
+            return 2018;
+        else if (days <= 730) // 2019 has 365 days
+            return 2019;
+        else if(days <= (730 + 366)) // 2020 has 366 days
+            return 2020;
+        else
+            return 2021;
+
+    }
 }

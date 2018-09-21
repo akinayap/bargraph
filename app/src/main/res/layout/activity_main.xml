@@ -7,9 +7,10 @@
     tools:context=".MainActivity">
 
     <include
+        android:id="@+id/layout"
         layout="@layout/tabs_layout"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="match_parent"
         android:layout_marginEnd="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
@@ -24,10 +25,10 @@
         android:id="@+id/chart"
         android:layout_width="match_parent"
         android:layout_height="300dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="64dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/dayBtn">
+        app:layout_constraintTop_toTopOf="parent">
 
     </com.github.mikephil.charting.charts.BarChart>
 
@@ -47,7 +48,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chart" />
+        app:layout_constraintTop_toBottomOf="@+id/rightDate" />
 
     <TextView
         android:id="@+id/just_text"
@@ -66,55 +67,23 @@
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
-        android:id="@+id/dayBtn"
-        android:layout_width="80dp"
-        android:layout_height="0dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginStart="8dp"
+    <TextView
+        android:id="@+id/leftDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Day"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="TextView"
+        app:layout_constraintTop_toBottomOf="@+id/chart"
+        tools:layout_editor_absoluteX="8dp" />
 
-    <Button
-        android:id="@+id/weekBtn"
-        android:layout_width="80dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginStart="8dp"
+    <TextView
+        android:id="@+id/rightDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Week"
-        app:layout_constraintBottom_toTopOf="@+id/chart"
-        app:layout_constraintStart_toEndOf="@+id/dayBtn"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/monthBtn"
-        android:layout_width="80dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginTop="8dp"
-        android:text="Month"
-        app:layout_constraintBottom_toTopOf="@+id/chart"
-        app:layout_constraintEnd_toStartOf="@+id/yearBtn"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/yearBtn"
-        android:layout_width="80dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginTop="8dp"
-        android:text="Year"
-        app:layout_constraintBottom_toTopOf="@+id/chart"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:text="TextView"
+        app:layout_constraintTop_toBottomOf="@+id/chart"
+        tools:layout_editor_absoluteX="294dp" />
 
 
 </android.support.constraint.ConstraintLayout>
