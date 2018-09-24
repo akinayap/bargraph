@@ -73,7 +73,6 @@ public class CustomMarkerView extends MarkerView {
         int days = (int) value;
 
         int year = determineYear(days);
-
         int month = determineMonth(days);
         String monthName = mMonths[month % mMonths.length];
         String yearName = String.valueOf(year);
